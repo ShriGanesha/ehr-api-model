@@ -98,6 +98,160 @@ paths:
               schema:
                 $ref: '#/components/schemas/Patient'
 
+  /ehr/practitioner:
+    get:
+      summary: Search Practitioners
+      description: >
+        FHIR-compliant Patient search. Returns a Bundle of Patient resources.
+      operationId: searchPractitioners
+      parameters:
+        - name: name
+          in: query
+          description: A portion of the practitioner's name
+          schema:
+            type: string
+        - name: identifier
+          in: query
+          description: Business identifier
+          schema:
+            type: string
+        - name: gender
+          in: query
+          description: male | female | other | unknown
+          schema:
+            type: string
+        - name: address
+          in: query
+          description: A portion of the address
+          schema:
+            type: string
+        - name: _id
+          in: query
+          description: Match on resource id
+          schema:
+            type: string
+        - name: _count
+          in: query
+          description: Page size
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Bundle of Practitioner resources (searchset)
+          content:
+            application/fhir+json:
+              schema:
+                $ref: '#/components/schemas/PractitionerBundle'
+              example:
+                resourceType: Bundle
+                type: searchset
+                total: 1
+                entry:
+                  - fullUrl: "https://api.example.com/fhir/Practitioner/pract-12345"
+                    resource:
+                      resourceType: Practitioner
+                      id: pract-12345
+                      active: true
+                      name:
+                        - use: official
+                          family: "Doe"
+                          given: ["John"]
+                      telecom:
+                        - system: phone
+                          value: "+1-555-555-5555"
+                        - system: email
+                          value: "john.doe@example.com"
+        '400':
+          description: Invalid search parameter
+          content:
+            application/fhir+json:
+              schema:
+                $ref: '#/components/schemas/OperationOutcome'
+  
+  post:
+      summary: Create a Practitioner
+      operationId: createPractitioner
+      requestBody:
+        required: true
+        content:
+          application/fhir+json:
+            schema:
+              $ref: '#/components/schemas/Practitioner'
+      responses:
+        '201':
+          description: Created — returns created Practitioner (Location header points to resource)
+          headers:
+            Location:
+              description: Location of the created resource
+              schema:
+                type: string
+          content:
+            application/fhir+json:
+              schema:
+                $ref: '#/components/schemas/Practitioner'
+        '400':
+          description: Invalid input
+          content:
+            application/fhir+json:
+              schema:
+                $ref: '#/components/schemas/OperationOutcome'
+      security:
+        - bearerAuth: []
+
+  /Practitioner/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Practitioner resource id
+    get:
+      summary: Read a Practitioner by id
+      operationId: readPractitioner
+      responses:
+        '200':
+          description: Practitioner resource
+          content:
+            application/fhir+json:
+              schema:
+                $ref: '#/components/schemas/Practitioner'
+              example:
+                resourceType: Practitioner
+                id: pract-12345
+                active: true
+                name:
+                  - use: official
+                    family: "Doe"
+                    given: ["John"]
+                telecom:
+                  - system: phone
+                    value: "+1-555-555-5555"
+        '404':
+          description: Not found
+          content:
+            application/fhir+json:
+              schema:
+                $ref: '#/components/schemas/OperationOutcome'
+    delete:
+      summary: Delete Practitioner
+      operationId: deletePractitioner
+      responses:
+        '204':
+          description: No Content — resource deleted
+        '404':
+          description: Not found
+          content:
+            application/fhir+json:
+              schema:
+                $ref: '#/components/schemas/OperationOutcome'
+      security:
+        - bearerAuth: []
+tags:
+  - name: Practitioner
+    description: FHIR Practitioner resource operations
+
   /ehr/appointment/{id}:
     get:
       summary: Get an Appointment by ID
@@ -439,3 +593,214 @@ components:
               format: date-time
             end:
               type: string
+
+    # --- PRACTITIONER 
+    PractitionerBundle:
+      type: object
+      description: FHIR Bundle (searchset) with Practitioner entries (simplified)
+      properties:
+        resourceType:
+          type: string
+          enum: [Bundle]
+          example: Bundle
+        id:
+          type: string
+        type:
+          type: string
+          enum: [searchset]
+          example: searchset
+        total:
+          type: integer
+          example: 1
+        entry:
+          type: array
+          items:
+            type: object
+            properties:
+              fullUrl:
+                type: string
+              resource:
+                $ref: '#/components/schemas/Practitioner'
+              search:
+                type: object
+                properties:
+                  mode:
+                    type: string
+    OperationOutcome:
+      type: object
+      description: FHIR OperationOutcome (simplified)
+      properties:
+        resourceType:
+          type: string
+          enum: [OperationOutcome]
+          example: OperationOutcome
+        issue:
+          type: array
+          items:
+            type: object
+            properties:
+              severity:
+                type: string
+                enum: [fatal, error, warning, information]
+                example: error
+              code:
+                type: string
+                example: invalid
+              diagnostics:
+                type: string
+                example: "Patient id not found"
+
+    Practitioner:
+      type: object
+      description: Simplified FHIR Practitioner resource (R4)
+      properties:
+        resourceType:
+          type: string
+          enum: [Practitioner]
+          example: Practitioner
+        id:
+          type: string
+          example: "pract-12345"
+        meta:
+          type: object
+          properties:
+            versionId:
+              type: string
+            lastUpdated:
+              type: string
+              format: date-time
+        identifier:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+        active:
+          type: boolean
+          example: true
+        name:
+          type: array
+          items:
+            $ref: '#/components/schemas/HumanName'
+        telecom:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactPoint'
+        address:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+        gender:
+          type: string
+          enum: [male, female, other, unknown]
+        birthDate:
+          type: string
+          format: date
+          example: "1970-01-01"
+        qualification:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qualification'
+        communication:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodeableConcept'
+    Identifier:
+      type: object
+      properties:
+        use:
+          type: string
+          example: usual
+        system:
+          type: string
+          example: http://hospital.smarthealthit.org
+        value:
+          type: string
+          example: "12345"
+
+    HumanName:
+      type: object
+      properties:
+        use:
+          type: string
+          example: official
+        family:
+          type: string
+          example: "Doe"
+        given:
+          type: array
+          items:
+            type: string
+          example: ["John", "H"]
+        prefix:
+          type: array
+          items:
+            type: string
+
+    ContactPoint:
+      type: object
+      properties:
+        system:
+          type: string
+          enum: [phone, fax, email, pager, url, sms, other]
+        value:
+          type: string
+        use:
+          type: string
+          enum: [home, work, temp, old, mobile]
+
+    Address:
+      type: object
+      properties:
+        use:
+          type: string
+          example: work
+        type:
+          type: string
+          example: both
+        text:
+          type: string
+        line:
+          type: array
+          items:
+            type: string
+        city:
+          type: string
+        district:
+          type: string
+        state:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+
+    Qualification:
+      type: object
+      properties:
+        code:
+          $ref: '#/components/schemas/CodeableConcept'
+        issuer:
+          type: object
+          properties:
+            display:
+              type: string
+    CodeableConcept:
+      type: object
+      properties:
+        coding:
+          type: array
+          items:
+            $ref: '#/components/schemas/Coding'
+        text:
+          type: string
+
+    Coding:
+      type: object
+      properties:
+        system:
+          type: string
+        code:
+          type: string
+        display:
+          type: string
+
+

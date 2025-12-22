@@ -9,7 +9,7 @@ servers:
   - url: https://api.example.com
 
 paths:
-  /ehr/patient/{id}:
+  /ehr/patients/{id}:
     get:
       summary: Get a Patient by ID
       operationId: getPatientById
@@ -30,7 +30,7 @@ paths:
         '404':
           description: Patient not found
 
-  /ehr/patient:
+  /ehr/patients:
     get:
       summary: Search / list Patients
       description: >
@@ -98,12 +98,91 @@ paths:
               schema:
                 $ref: '#/components/schemas/Patient'
 
-  /ehr/practitioner:
+  /ehr/appointments/{id}:
+    get:
+      summary: Get an Appointment by ID
+      operationId: getAppointmentById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: FHIR Appointment resource ID
+      responses:
+        '200':
+          description: Appointment found
+          content:
+            application/fhir+json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '404':
+          description: Appointment not found
+
+  /ehr/appointments:
+    post:
+      summary: Create or update an Appointment
+      operationId: createAppointment
+      requestBody:
+        required: true
+        content:
+          application/fhir+json:
+            schema:
+              $ref: '#/components/schemas/Appointment'
+      responses:
+        '201':
+          description: Appointment created
+          content:
+            application/fhir+json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+
+  /ehr/encounters/{id}:
+    get:
+      summary: Get an Encounter by ID
+      operationId: getEncounterById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: FHIR Encounter resource ID
+      responses:
+        '200':
+          description: Encounter found
+          content:
+            application/fhir+json:
+              schema:
+                $ref: '#/components/schemas/Encounter'
+        '404':
+          description: Encounter not found
+
+  /ehr/encounters:
+    post:
+      summary: Create or update an Encounter
+      operationId: createEncounter
+      requestBody:
+        required: true
+        content:
+          application/fhir+json:
+            schema:
+              $ref: '#/components/schemas/Encounter'
+      responses:
+        '201':
+          description: Encounter created
+          content:
+            application/fhir+json:
+              schema:
+                $ref: '#/components/schemas/Encounter'
+
+  /ehr/practitioners:
     get:
       summary: Search Practitioners
-      description: >
-        FHIR-compliant Patient search. Returns a Bundle of Patient resources.
       operationId: searchPractitioners
+      description: |
+        FHIR-style search for Practitioner resources. Supports common search parameters:
+        `name`, `identifier`, `gender`, `_id`, `_count`, `address`.
       parameters:
         - name: name
           in: query
@@ -168,8 +247,8 @@ paths:
             application/fhir+json:
               schema:
                 $ref: '#/components/schemas/OperationOutcome'
-  
-  post:
+
+    post:
       summary: Create a Practitioner
       operationId: createPractitioner
       requestBody:
@@ -196,10 +275,8 @@ paths:
             application/fhir+json:
               schema:
                 $ref: '#/components/schemas/OperationOutcome'
-      security:
-        - bearerAuth: []
 
-  /Practitioner/{id}:
+  /ehr/practitioners/{id}:
     parameters:
       - name: id
         in: path
@@ -246,89 +323,6 @@ paths:
             application/fhir+json:
               schema:
                 $ref: '#/components/schemas/OperationOutcome'
-      security:
-        - bearerAuth: []
-tags:
-  - name: Practitioner
-    description: FHIR Practitioner resource operations
-
-  /ehr/appointment/{id}:
-    get:
-      summary: Get an Appointment by ID
-      operationId: getAppointmentById
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: FHIR Appointment resource ID
-      responses:
-        '200':
-          description: Appointment found
-          content:
-            application/fhir+json:
-              schema:
-                $ref: '#/components/schemas/Appointment'
-        '404':
-          description: Appointment not found
-
-  /ehr/appointment:
-    post:
-      summary: Create or update an Appointment
-      operationId: createAppointment
-      requestBody:
-        required: true
-        content:
-          application/fhir+json:
-            schema:
-              $ref: '#/components/schemas/Appointment'
-      responses:
-        '201':
-          description: Appointment created
-          content:
-            application/fhir+json:
-              schema:
-                $ref: '#/components/schemas/Appointment'
-
-  /ehr/encounter/{id}:
-    get:
-      summary: Get an Encounter by ID
-      operationId: getEncounterById
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: FHIR Encounter resource ID
-      responses:
-        '200':
-          description: Encounter found
-          content:
-            application/fhir+json:
-              schema:
-                $ref: '#/components/schemas/Encounter'
-        '404':
-          description: Encounter not found
-
-  /ehr/encounter:
-    post:
-      summary: Create or update an Encounter
-      operationId: createEncounter
-      requestBody:
-        required: true
-        content:
-          application/fhir+json:
-            schema:
-              $ref: '#/components/schemas/Encounter'
-      responses:
-        '201':
-          description: Encounter created
-          content:
-            application/fhir+json:
-              schema:
-                $ref: '#/components/schemas/Encounter'
 
 components:
   schemas:
@@ -593,39 +587,8 @@ components:
               format: date-time
             end:
               type: string
-
-    # --- PRACTITIONER 
-    PractitionerBundle:
-      type: object
-      description: FHIR Bundle (searchset) with Practitioner entries (simplified)
-      properties:
-        resourceType:
-          type: string
-          enum: [Bundle]
-          example: Bundle
-        id:
-          type: string
-        type:
-          type: string
-          enum: [searchset]
-          example: searchset
-        total:
-          type: integer
-          example: 1
-        entry:
-          type: array
-          items:
-            type: object
-            properties:
-              fullUrl:
-                type: string
-              resource:
-                $ref: '#/components/schemas/Practitioner'
-              search:
-                type: object
-                properties:
-                  mode:
-                    type: string
+    
+    # Simple OperationOutcome (error response)
     OperationOutcome:
       type: object
       description: FHIR OperationOutcome (simplified)
@@ -650,59 +613,27 @@ components:
                 type: string
                 example: "Patient id not found"
 
-    Practitioner:
+    # FHIR primitive wrappers used below (simplified)
+    Coding:
       type: object
-      description: Simplified FHIR Practitioner resource (R4)
       properties:
-        resourceType:
+        system:
           type: string
-          enum: [Practitioner]
-          example: Practitioner
-        id:
+        code:
           type: string
-          example: "pract-12345"
-        meta:
-          type: object
-          properties:
-            versionId:
-              type: string
-            lastUpdated:
-              type: string
-              format: date-time
-        identifier:
-          type: array
-          items:
-            $ref: '#/components/schemas/Identifier'
-        active:
-          type: boolean
-          example: true
-        name:
-          type: array
-          items:
-            $ref: '#/components/schemas/HumanName'
-        telecom:
-          type: array
-          items:
-            $ref: '#/components/schemas/ContactPoint'
-        address:
-          type: array
-          items:
-            $ref: '#/components/schemas/Address'
-        gender:
+        display:
           type: string
-          enum: [male, female, other, unknown]
-        birthDate:
+
+    CodeableConcept:
+      type: object
+      properties:
+        coding:
+          type: array
+          items:
+            $ref: '#/components/schemas/Coding'
+        text:
           type: string
-          format: date
-          example: "1970-01-01"
-        qualification:
-          type: array
-          items:
-            $ref: '#/components/schemas/Qualification'
-        communication:
-          type: array
-          items:
-            $ref: '#/components/schemas/CodeableConcept'
+
     Identifier:
       type: object
       properties:
@@ -783,24 +714,89 @@ components:
           properties:
             display:
               type: string
-    CodeableConcept:
+
+    Practitioner:
       type: object
+      description: Simplified FHIR Practitioner resource (R4)
       properties:
-        coding:
+        resourceType:
+          type: string
+          enum: [Practitioner]
+          example: Practitioner
+        id:
+          type: string
+          example: "pract-12345"
+        meta:
+          type: object
+          properties:
+            versionId:
+              type: string
+            lastUpdated:
+              type: string
+              format: date-time
+        identifier:
           type: array
           items:
-            $ref: '#/components/schemas/Coding'
-        text:
+            $ref: '#/components/schemas/Identifier'
+        active:
+          type: boolean
+          example: true
+        name:
+          type: array
+          items:
+            $ref: '#/components/schemas/HumanName'
+        telecom:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactPoint'
+        address:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+        gender:
           type: string
+          enum: [male, female, other, unknown]
+        birthDate:
+          type: string
+          format: date
+          example: "1970-01-01"
+        qualification:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qualification'
+        communication:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodeableConcept'
 
-    Coding:
+    PractitionerBundle:
       type: object
+      description: FHIR Bundle (searchset) with Practitioner entries (simplified)
       properties:
-        system:
+        resourceType:
           type: string
-        code:
+          enum: [Bundle]
+          example: Bundle
+        id:
           type: string
-        display:
+        type:
           type: string
-
-
+          enum: [searchset]
+          example: searchset
+        total:
+          type: integer
+          example: 1
+        entry:
+          type: array
+          items:
+            type: object
+            properties:
+              fullUrl:
+                type: string
+              resource:
+                $ref: '#/components/schemas/Practitioner'
+              search:
+                type: object
+                properties:
+                  mode:
+                    type: string
